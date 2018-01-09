@@ -8,9 +8,10 @@
 #include <sys/socket.h>
 #include <tools.h>
 #include <unistd.h>
-
+#include <Python.h>
 #define BUF_SIZE 256
 
+int hand_shake(int s_socket);
 
 int main(int argc, char** argv) {
     if (argv[1] == NULL) {
@@ -42,44 +43,69 @@ int main(int argc, char** argv) {
 
     if (connect(s_socket, (struct sockaddr*) &s_addr, sizeof(struct sockaddr)) < 0) {
         print("Couldn't connect to the server.", m_error);
+        close(s_socket);
         return 1;
     }
-    //4096	87380	6291456
 
+    if (!hand_shake(s_socket)) {
+        print("Connected to the server.", m_info);
+    }
+    else {
+        print("Handshake with server failed.", m_error);
+        close(s_socket);
+        return 1;
+    }
 
+    while (1) {
+        Request* request = req_create();
+        if (!req_receive(s_socket, request)) {
+            print("Connection with the server lost.", m_error);
+            req_free(request);
+            return 1;
+        }
+        switch (request->header.req_type) {
+            case req_cnt: {
+                break;
+            }
+            case req_snd: {
+                break;
+            }
+            default:
+                break;
+        }
+        req_free(request);
+    }
+    close(s_socket);
+    return 0;
+}
+
+int hand_shake(int s_socket) {
     RData_Connect data;
     data.conn_type = conn_slave;
-    sprintf(data.name, "TEST");
-
-    Request* request = req_encode(req_cnt, &data, "1234567");
-
-    req_send(s_socket, request);
+    strcpy(data.name, "be");
+    Request* request = req_encode(req_cnt, &data, "1234");
+    if (req_send(s_socket, request)) {
+        print("Connection with the server lost.", m_error);
+        req_free(request);
+        return 1;
+    }
     req_free(request);
 
-    RData_File script;
-    script.file_type = py3_script;
-    script.size = 120;
-    script.data = malloc(script.size);
-    sprintf(script.data, "Ala ma kota, kot ma Ale!\nGEJ!!");
-    request = req_encode(req_snd, &script, "1234567");
-    req_send(s_socket, request);
+    request = req_create();
+    if (req_receive(s_socket, request)) {
+        print("Connection with the server lost.", m_error);
+        req_free(request);
+        return 1;
+    }
+
+    if (request->header.req_type == req_ok) {
+        print("Connection with the server established.", m_info);
+    }
+    else {
+        print("Connection refused by the server.", m_error);
+        req_free(request);
+        return 1;
+    }
     req_free(request);
-    free(script.data);
-    // while (1) {
-    //     if (!req_receive(s_socket, &request)) {
-    //         switch (request.header.req_type) {
-    //             case req_cnt: {
-    //                 RData_Connect data = *((RData_Connect*)request.data);
-    //                 print(data.name ,m_info);
-    //             }
-    //             default:
-    //                 break;
-    //         }
-    //     } else {
-    //         print("Connection with client lost.", m_warning);
-    //         break;
-    //     }
-    // }
-    close(s_socket);
     return 0;
 }

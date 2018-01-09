@@ -7,7 +7,8 @@ typedef enum reqType {
     req_snd,
     req_rfh,
     req_rcv,
-    req_fail
+    req_fail,
+    req_ok
 } reqType;
 
 /* Defines connection types.                                    */
