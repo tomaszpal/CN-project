@@ -2,45 +2,47 @@
 #include <string.h>
 #include <stdlib.h>
 
-#define MAX_REQUESTS_NUMBER 6
 
-typedef struct request_info{
-    RData_File resource;
+#define MAX_TASKS_NUMBER 2
+
+typedef struct task_info{
+    //RData_File resource;
     int slave_id;
     int client_id;
-} request_info;
+} task_info;
 
-typedef struct Request_queue{
-    request_info queue[MAX_REQUESTS_NUMBER];
+typedef struct Tasks_queue{
+    task_info queue[MAX_TASKS_NUMBER];
     pthread_mutex_t mutex;
     int first;
     int last;
     int counter;
-} Reqest_queue;
+} Tasks_queue;
 
-void init_queue(Request_queue* req){
-    Request_queue req;
-    pthread_mutex_init(&(req.mutex), NULL);
-    req.first = 0;
-    req.last = -1;
-    req.counter = 0;
+void init_queue(Tasks_queue* queue){
+    pthread_mutex_init(&(queue->mutex), NULL);
+    queue->first = 0;
+    queue->last = -1;
+    queue->counter = 0;
 }
 
-int is_full(*Request_queue queue) {
+int is_full(Tasks_queue* queue) {
     pthread_mutex_lock(&(queue->mutex));
-    int res = queue->counter == MAX_REQUESTS_NUMBER;
+    int res = queue->counter == MAX_TASKS_NUMBER;
     pthread_mutex_unlock(&(queue->mutex));
     return res;
 }
 
 //return 1 if success, 0 if is already full
-int push(*Request_queue queue, *request_info req) {
-   if(!isFull(queue)) {
+//parameters: queue - queue structure pointer
+//t - pointer to task_info structure to be pushed into queue
+int push(Tasks_queue* queue, task_info* t) {
+   if (!is_full(queue)) {
         pthread_mutex_lock(&(queue->mutex));
-        if(queue->last == MAX_REQUESTS_NUMBER-1)
+        if (queue->last == MAX_TASKS_NUMBER-1)
             queue->last = -1;
-        request_info* new_req = queue->queue[++last];
-        memcpy(new_req, req, sizeof(request_info));
+        task_info* new_task = &(queue->queue[++(queue->last)]);
+        memcpy(new_task, t, sizeof(task_info));
         queue->counter++;
         pthread_mutex_unlock(&(queue->mutex));
         return 1;
@@ -49,25 +51,43 @@ int push(*Request_queue queue, *request_info req) {
         return 0;
 }
 
-request_info pop() {
-   int data = intArray[front++];
-   if(front == MAX) {
-      front = 0;
-   }
-   itemCount--;
-   return data;
+//return 1 if success, 0 if is already empty
+//parameters: queue - queue structure pointer
+//t - pointer to task_info structure to save popped value from queue
+int pop(Tasks_queue* queue, task_info* t) {
+     pthread_mutex_lock(&(queue->mutex));
+     if(queue->counter != 0){
+         memcpy(t, &(queue->queue[queue->first++]), sizeof(task_info));
+         if (queue->first == MAX_TASKS_NUMBER) {
+            queue->first = 0;
+         }
+         queue->counter--;
+         pthread_mutex_unlock(&(queue->mutex));
+         return 1;
+     }
+     else {
+         pthread_mutex_unlock(&(queue->mutex));
+         return 0;
+     }
 }
 
+//for testing only
 int main() {
-  Request_queue requests_list;
-  init_queue(&requests_list);
+  Tasks_queue tasks_list;
+  init_queue(&tasks_list);
 
-  //inserting new value
-  request_info newinfo;
-  push(&requests_list, &newinfo)
+  task_info newinfo;
+  newinfo.slave_id=1;
+  printf("%d", push(&tasks_list, &newinfo));
+  newinfo.slave_id=2;
+  printf("%d", push(&tasks_list, &newinfo));
+  newinfo.slave_id=3;
+  printf("%d\n", push(&tasks_list, &newinfo));
+  printf("%d", pop(&tasks_list, &newinfo));
+  printf("%d", newinfo.slave_id);
+  printf("%d", pop(&tasks_list, &newinfo));
+  printf("%d", newinfo.slave_id);
+  printf("%d", pop(&tasks_list, &newinfo));
+  printf("%d", newinfo.slave_id);
 
-   while(!isEmpty()) {
-      int n = removeData();
-      printf("%d ",n);
-   }
 }
