@@ -46,17 +46,27 @@ int main(int argc, char** argv) {
     }
     //4096	87380	6291456
 
+    RData_File script;
+    script.file_type = py3_script;
+    script.size = 120;
+    script.data = malloc(script.size);
+    sprintf(script.data, "Ala ma kota, kot ma Ale!\nGEJ!!");
+    Request* request = req_encode(req_snd, &script, "1234567");
+    req_send(s_socket, request);
+    req_free(request);
+    free(script.data);
+
 
     RData_Connect data;
     data.conn_type = conn_slave;
     sprintf(data.name, "TEST");
 
-    Request* request = req_encode(req_cnt, &data, "1234567");
+    request = req_encode(req_cnt, &data, "1234567");
 
     req_send(s_socket, request);
     req_free(request);
 
-    RData_File script;
+    //RData_File script;
     script.file_type = py3_script;
     script.size = 120;
     script.data = malloc(script.size);
