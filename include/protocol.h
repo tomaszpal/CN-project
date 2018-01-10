@@ -8,7 +8,7 @@ typedef enum reqType {
     req_rfh,
     req_rcv,
     req_fail,
-    req_ok
+    req_res
 } reqType;
 
 /* Defines connection types.                                    */
@@ -23,6 +23,15 @@ typedef enum fileType {
     py3_script,
     data_file
 } fileType;
+
+/*Defines server response types                                */
+typedef enum resType {
+    full_slaves_list,
+    full_clients_list,
+    unauthorized_device
+    //add more
+} resType;
+
 
 /* Defines request header.                                      */
 typedef struct Header {
@@ -51,4 +60,8 @@ typedef struct RData_File {
     char* data;
 } RData_File;
 
+/* Defines server response                                       */
+typedef struct RData_Response {
+    resType res_type;
+} RData_Response;
 #endif //_PROTOCOL_
