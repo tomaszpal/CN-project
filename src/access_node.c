@@ -44,7 +44,7 @@ void slave_support();
 
 //res_id is an id for response type
 //@TODO add response types in protocol
-void send_response(int res_id);
+void send_response(int socket, int res_id);
 
 void* handle_connection(void* arg);
 
@@ -104,21 +104,21 @@ void* handle_connection(void* arg) {
             if(s != NULL)
                 slave_support(s);
             else
-                send_response(1); //Response type: no more place for slaves
+                send_response(c_socket, 1); //Response type: no more place for slaves
         }
         else if (type == conn_client) {
             client_info* c = add_client(c_socket);
             if(c != NULL)
                 client_support(c);
             else
-                send_response(1); //Response type: no more place for clients
+                send_response(c_socket, 1); //Response type: no more place for clients
         }
         else
-            send_response(1); //Response type: wrong conn_type parameter value
+            send_response(c_socket, 1); //Response type: wrong conn_type parameter value
     }
     else
         print("Unauthorized device send fail.", m_warning);
-        send_response(1); //Response type: unauthorized device send fail
+        send_response(c_socket, 1); //Response type: unauthorized device send fail
     return NULL;
 }
 
@@ -229,8 +229,12 @@ void slave_support(slave_info* s) {
   close(s->socket);
 }
 
-void send_response(int res_id){
-  print("Send response..", m_info);
+void send_response(int sock, int res_id){
+  RData_Response data;
+  data.res_type = res_id;
+  Request* request = req_encode(req_res, &data, "1234567");
+  req_send(sock, request);
+  req_free(request);
 }
 //--------------------------------------------------------
 
