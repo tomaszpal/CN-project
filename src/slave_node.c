@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <tools.h>
 #include <unistd.h>
-#include <Python.h>
+
 #define BUF_SIZE 256
 
 int hand_shake(int s_socket);
@@ -82,8 +82,8 @@ int main(int argc, char** argv) {
 int hand_shake(int s_socket) {
     RData_Connect data;
     data.conn_type = conn_slave;
-    strcpy(data.name, "be");
     Request* request = req_encode(req_cnt, &data, "1234");
+
     if (req_send(s_socket, request)) {
         print("Connection with the server lost.", m_error);
         req_free(request);
@@ -98,11 +98,21 @@ int hand_shake(int s_socket) {
         return 1;
     }
 
-    if (request->header.req_type == req_ok) {
-        print("Connection with the server established.", m_info);
+    if (request->header.req_type == req_res) {
+        RData_Response* response = req_decode(request);
+        if (response->res_type == res_ok) {
+            print("Connection with the server established.", m_info);
+            free(response);
+        }
+        else {
+            print("Connection refused by the server.", m_error);
+            req_free(request);
+            free(response);
+            return 1;
+        }
     }
     else {
-        print("Connection refused by the server.", m_error);
+        print("Unknown or wrong response from the server.", m_error);
         req_free(request);
         return 1;
     }

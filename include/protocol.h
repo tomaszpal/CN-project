@@ -5,9 +5,7 @@
 typedef enum reqType {
     req_cnt,
     req_snd,
-    req_rfh,
     req_rcv,
-    req_fail,
     req_res
 } reqType;
 
@@ -19,19 +17,19 @@ typedef enum connType {
 
 /* Defines file type.                                          */
 typedef enum fileType {
-    py2_script,
-    py3_script,
-    data_file
+    file_py2_script,
+    file_py3_script,
+    file_data_file
 } fileType;
 
 /*Defines server response types                                */
 typedef enum resType {
-    full_slaves_list,
-    full_clients_list,
-    unauthorized_device
+    res_ok,
+    res_fail,
+    res_full,
+    res_unauth_dev
     //add more
 } resType;
-
 
 /* Defines request header.                                      */
 typedef struct Header {
