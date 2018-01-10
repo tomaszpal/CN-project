@@ -118,6 +118,7 @@ void* handle_connection(void* arg) {
     }
     else
         print("Unauthorized device send fail.", m_warning);
+        send_response(1); //Response type: unauthorized device send fail
     return NULL;
 }
 
@@ -136,7 +137,7 @@ client_info* add_client(int c_socket){ //@TODO authorization
         else
             pthread_mutex_unlock(&clients_mutex);
     }
-    print("NO MORE PLACE FOR CLIENTS",m_warning);
+    print("NO MORE PLACE FOR CLIENTS", m_warning);
     return NULL;
 }
 
@@ -190,6 +191,7 @@ void client_support(client_info* c) {
       }
   }
   print("Request handled.", m_info);
+  memset(c, 0, sizeof(client_info));
   close(c->socket);
 }
 
@@ -218,6 +220,7 @@ void slave_support(slave_info* s) {
       }
       else {
           print("Connection with slave lost.", m_warning);
+          memset(s, 0, sizeof(slave_info));
           req_free(request);
           break;
       }
