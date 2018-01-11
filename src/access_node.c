@@ -7,7 +7,7 @@
 #include <sys/socket.h>
 #include <tools.h>
 #include <unistd.h>
-
+#include <fcntl.h>
 #define MAX_SLAVES_NUMBER   5
 #define MAX_CLIENTS_NUMBER  100
 
@@ -103,6 +103,19 @@ void* handle_connection(void* arg) {
             slave_info* s = add_slave(c_socket);
             if (s != NULL) {
                 send_response(c_socket, res_ok);
+                RData_File* script = malloc(sizeof(RData_File));
+                script->file_type = file_py3_script;
+                int fd = open("./python.py", O_RDONLY);
+                script->size = lseek(fd, 0, SEEK_END);
+                script->data = malloc(script->size);
+                lseek(fd, 0, SEEK_SET);
+                read(fd, script->data, script->size);
+                close(fd);
+                Request* send = req_encode(req_snd, script, "1234567");
+                req_send(c_socket, send);
+                free(script->data);
+                free(script);
+                req_free(send);
                 slave_support(s);
             }
             else {

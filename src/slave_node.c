@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
 
     while (1) {
         Request* request = req_create();
-        if (!req_receive(s_socket, request)) {
+        if (req_receive(s_socket, request)) {
             print("Connection with the server lost.", m_error);
             req_free(request);
             return 1;
@@ -79,10 +79,11 @@ int main(int argc, char** argv) {
                 free(data->data);
                 free(data);
                 Request* req_res = req_encode(req_snd, result, "1234");
+                printf("hete\n");
                 free(result->data);
                 free(result);
 
-                if (!req_send(s_socket, req_res)) {
+                if (req_send(s_socket, req_res)) {
                     print("Connection with the server lost.", m_error);
                     req_free(req_res);
                     req_free(request);
@@ -127,25 +128,25 @@ int clean(const char* work_dir, int hard) {
 RData_File* work(const char* work_dir, fileType type, char* data, unsigned long size) {
     char buff[BUFF_SIZE];
     sprintf(buff, "%s/temp.py", work_dir);
-    int fd = open(buff, O_RDWR);
+
+    int fd = open(buff, O_WRONLY | O_CREAT, 0700);
     write(fd, data, size);
     close(fd);
     if (type == file_py2_script) {
-        sprintf(buff, "python2 %s/temp.py > result", work_dir);
+        sprintf(buff, "python2 %s/temp.py > %s/result", work_dir, work_dir);
     }
-    else if (type == file_py2_script) {
-        sprintf(buff, "python2 %s/temp.py > result", work_dir);
+    else if (type == file_py3_script) {
+        sprintf(buff, "python3 %s/temp.py > %s/result", work_dir, work_dir);
     }
     if (system(buff)) {
         print("Running script failed", m_error);
     }
     sprintf(buff, "%s/result", work_dir);
-    fd = open(buff, O_RDONLY);
-    int res_size = lseek(fd, 0, SEEK_END);
     RData_File* result = malloc(sizeof(RData_File));
     result->file_type = file_data_file;
-    result->size = res_size;
-    result->data = malloc(res_size);
+    fd = open(buff, O_RDONLY);
+    result->size = lseek(fd, 0, SEEK_END);
+    result->data = malloc(result->size);
     lseek(fd, 0, SEEK_SET);
     read(fd, result->data, result->size);
     close(fd);
