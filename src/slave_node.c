@@ -13,9 +13,10 @@
 
 #define BUFF_SIZE 256
 
+int clean(const char* work_dir, int hard);
 int hand_shake(int s_socket);
 int setup(const char* work_dir);
-RData_File* work(const char* work_dir, fileType type, char* data, unsigned long size);
+RData_File* do_work(const char* work_dir, fileType type, char* data, unsigned long size);
 
 int main(int argc, char** argv) {
     if (argv[1] == NULL) {
@@ -75,21 +76,33 @@ int main(int argc, char** argv) {
         switch (request->header.req_type) {
             case req_snd: {
                 RData_File* data = req_decode(request);
-                RData_File* result = work(argv[3], data->file_type, data->data, data->size);
+                RData_File* result = do_work(argv[3], data->file_type, data->data, data->size);
+                clean(argv[3], 0);
+                print(result->data, m_info);
                 free(data->data);
                 free(data);
-                Request* req_res = req_encode(req_snd, result, "1234");
-                printf("hete\n");
-                free(result->data);
-                free(result);
+                Request* request_response;
+                if (result == NULL) {
+                    print("Couldn't run python script", m_warning);
+                    RData_Response response;
+                    response.res_type = res_fail;
+                    request_response = req_encode(req_res, &response, "1234");
+                }
+                else {
+                    print("Script run correctly", m_info);
+                    request_response = req_encode(req_snd, result, "1234");
+                    free(result->data);
+                    free(result);
+                }
 
-                if (req_send(s_socket, req_res)) {
+                if (req_send(s_socket, request_response)) {
                     print("Connection with the server lost.", m_error);
-                    req_free(req_res);
+                    req_free(request_response);
                     req_free(request);
                     return 1;
                 }
-                req_free(req_res);
+                print("Output send to server", m_info);
+                req_free(request_response);
                 break;
             }
             default:
@@ -102,11 +115,11 @@ int main(int argc, char** argv) {
 }
 
 int setup(const char* work_dir) {
-    if (system("python2 --version &> /dev/null")) {
+    if (system("python2 --version > /dev/null 2>&1")) {
         print("Python2 interpreter not found!", m_warning);
         return 0;
     }
-    if (system("python3 --version &> /dev/null")) {
+    if (system("python3 --version > /dev/null 2>&1")) {
         print("Python3 interpreter not found!", m_warning);
         return 0;
     }
@@ -122,33 +135,54 @@ int setup(const char* work_dir) {
 }
 
 int clean(const char* work_dir, int hard) {
+    char buff[BUFF_SIZE];
+    if (hard) {
+        sprintf(buff, "rm -rf %s", work_dir);
+    }
+    else {
+        sprintf(buff, "rm -rf %s/*", work_dir);
+    }
+    if (system(buff)) {
+        print("Couldn't clear work directory", m_warning);
+    }
     return 0;
 }
 
-RData_File* work(const char* work_dir, fileType type, char* data, unsigned long size) {
+RData_File* do_work(const char* work_dir, fileType type, char* data, unsigned long size) {
     char buff[BUFF_SIZE];
     sprintf(buff, "%s/temp.py", work_dir);
 
     int fd = open(buff, O_WRONLY | O_CREAT, 0700);
+    if (fd < 0) {
+        print("Couldn't create temporary python file", m_warning);
+        return NULL;
+    }
     write(fd, data, size);
     close(fd);
+
     if (type == file_py2_script) {
-        sprintf(buff, "python2 %s/temp.py > %s/result", work_dir, work_dir);
+        sprintf(buff, "python2 %s/temp.py >> %s/result 2>&1", work_dir, work_dir);
     }
     else if (type == file_py3_script) {
-        sprintf(buff, "python3 %s/temp.py > %s/result", work_dir, work_dir);
+        sprintf(buff, "python3 %s/temp.py >> %s/result 2>&1", work_dir, work_dir);
     }
     if (system(buff)) {
-        print("Running script failed", m_error);
+        print("Running script failed", m_warning);
     }
     sprintf(buff, "%s/result", work_dir);
     RData_File* result = malloc(sizeof(RData_File));
     result->file_type = file_data_file;
     fd = open(buff, O_RDONLY);
+    if (fd < 0) {
+        print("Couldn't open resutl file", m_warning);
+        free(result);
+        return NULL;
+    }
     result->size = lseek(fd, 0, SEEK_END);
     result->data = malloc(result->size);
     lseek(fd, 0, SEEK_SET);
-    read(fd, result->data, result->size);
+    int x = read(fd, result->data, result->size - 1);
+    result->data[result->size - 1] = 0;
     close(fd);
     return result;
 }
