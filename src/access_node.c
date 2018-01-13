@@ -7,6 +7,7 @@
 #include <sys/socket.h>
 #include <tools.h>
 #include <unistd.h>
+#include <queue.h>
 
 #define MAX_SLAVES_NUMBER   5
 #define MAX_CLIENTS_NUMBER  100
@@ -17,14 +18,16 @@
 
 typedef struct client_info {
     int socket;
+    Tasks_queue tasks_done;
 } client_info;
 
 typedef struct slave_info {
     int socket;
     int busy;
-    int request_id;
     client_info* client;
 } slave_info;
+
+Tasks_queue tasks_queue;
 
 //tables with informations about connected slaves and users
 slave_info slaves_list[MAX_SLAVES_NUMBER];
@@ -43,7 +46,6 @@ void client_support();
 void slave_support();
 
 //res_id is an id for response type
-//@TODO add response types in protocol
 void send_response(int socket, resType res_id);
 
 void* handle_connection(void* arg);
@@ -91,7 +93,7 @@ int main(int argc, char** argv) {
 }
 
 void* handle_connection(void* arg) {
-    print("Handling a new request.", m_info);
+    print("Handling a new connection.", m_info);
     int c_socket = *((int*) arg);
     Request* request = req_create();
     if (!req_receive(c_socket, request) && request->header.req_type == req_cnt) {
@@ -123,7 +125,7 @@ void* handle_connection(void* arg) {
         }
     }
     else {
-        print("Unauthorized device send fail.", m_warning);
+        print("Unauthorized device.", m_warning);
         send_response(c_socket, res_unauth_dev);
     }
     return NULL;
@@ -131,10 +133,10 @@ void* handle_connection(void* arg) {
 
 client_info* add_client(int c_socket){ //@TODO authorization
     int i;
-    for(i=0; i <= MAX_CLIENTS_NUMBER ; i++) {
+    for (i = 0; i <= MAX_CLIENTS_NUMBER ; i++) {
         client_info* c = &clients_list[i];
         pthread_mutex_lock(&clients_mutex);
-        if(c->socket == 0) {
+        if (c->socket == 0) {
             c->socket = c_socket;
             pthread_mutex_unlock(&clients_mutex);
             char buff[BUFF_SIZE];
@@ -142,19 +144,20 @@ client_info* add_client(int c_socket){ //@TODO authorization
             print(buff, m_info);
             return c;
         }
-        else
+        else {
             pthread_mutex_unlock(&clients_mutex);
+        }
     }
-    print("NO MORE PLACE FOR CLIENTS", m_warning);
+    print("Clients list is full", m_warning);
     return NULL;
 }
 
 slave_info* add_slave(int c_socket){ //@TODO authorization
   int i;
-  for(i = 0; i <= MAX_SLAVES_NUMBER ; i++) {
+  for (i = 0; i <= MAX_SLAVES_NUMBER ; i++) {
       slave_info* s = &slaves_list[i];
       pthread_mutex_lock(&slaves_mutex);
-      if(s->socket == 0) {
+      if (s->socket == 0) {
           s->socket = c_socket;
           s->busy = 0;
           pthread_mutex_unlock(&slaves_mutex);
@@ -163,10 +166,11 @@ slave_info* add_slave(int c_socket){ //@TODO authorization
           print(buff, m_info);
           return s;
       }
-      else
+      else {
           pthread_mutex_unlock(&slaves_mutex);
+      }
   }
-  print("NO MORE PLACE FOR SLAVES", m_warning);
+  print("Slaves list is full", m_warning);
   return NULL;
 }
 
@@ -182,6 +186,7 @@ void client_support(client_info* c) {
                   sprintf(buff, "%u, %lu", data->file_type, data->size);
                   print(buff, m_info);
                   print(data->data, m_info);
+                  free(data->data);
                   free(data);
                   break;
               }
