@@ -98,6 +98,7 @@ Request* req_encode(reqType type, void* data, char key[8]) {
 void* req_decode(Request* request) {
     void* res = NULL;
     switch (request->header.req_type) {
+        case req_res:
         case req_cnt: {
             RData_Connect* data = malloc(sizeof(RData_Connect));
             memcpy(data, request->data, request->header.size);

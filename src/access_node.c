@@ -44,7 +44,7 @@ void slave_support();
 
 //res_id is an id for response type
 //@TODO add response types in protocol
-void send_response(int socket, int res_id);
+void send_response(int socket, resType res_id);
 
 void* handle_connection(void* arg);
 
@@ -101,24 +101,31 @@ void* handle_connection(void* arg) {
         free(data);
         if (type == conn_slave) {
             slave_info* s = add_slave(c_socket);
-            if(s != NULL)
+            if (s != NULL) {
+                send_response(c_socket, res_ok);
                 slave_support(s);
-            else
-                send_response(c_socket, 1); //Response type: no more place for slaves
+            }
+            else {
+                send_response(c_socket, res_full);
+            }
         }
         else if (type == conn_client) {
             client_info* c = add_client(c_socket);
-            if(c != NULL)
+            if (c != NULL) {
                 client_support(c);
-            else
-                send_response(c_socket, 1); //Response type: no more place for clients
+            }
+            else {
+                send_response(c_socket, res_full);
+            }
         }
-        else
-            send_response(c_socket, 1); //Response type: wrong conn_type parameter value
+        else {
+            send_response(c_socket, res_fail);
+        }
     }
-    else
+    else {
         print("Unauthorized device send fail.", m_warning);
-        send_response(c_socket, 1); //Response type: unauthorized device send fail
+        send_response(c_socket, res_unauth_dev);
+    }
     return NULL;
 }
 
@@ -130,8 +137,9 @@ client_info* add_client(int c_socket){ //@TODO authorization
         if(c->socket == 0) {
             c->socket = c_socket;
             pthread_mutex_unlock(&clients_mutex);
-            print("New client at socket:", m_info);
-            printf("%d\n", c->socket);
+            char buff[BUFF_SIZE];
+            sprintf(buff, "New client at socket: %d", c->socket);
+            print(buff, m_info);
             return c;
         }
         else
@@ -150,8 +158,9 @@ slave_info* add_slave(int c_socket){ //@TODO authorization
           s->socket = c_socket;
           s->busy = 0;
           pthread_mutex_unlock(&slaves_mutex);
-          print("New slave server at socket:", m_info);
-          printf("%d\n", s->socket);
+          char buff[BUFF_SIZE];
+          sprintf(buff, "New slave at socket: %d", s->socket);
+          print(buff, m_info);
           return s;
       }
       else
@@ -191,8 +200,8 @@ void client_support(client_info* c) {
       }
   }
   print("Request handled.", m_info);
-  memset(c, 0, sizeof(client_info));
   close(c->socket);
+  memset(c, 0, sizeof(client_info));
 }
 
 void slave_support(slave_info* s) {
@@ -220,53 +229,19 @@ void slave_support(slave_info* s) {
       }
       else {
           print("Connection with slave lost.", m_warning);
-          memset(s, 0, sizeof(slave_info));
           req_free(request);
           break;
       }
   }
   print("Request handled.", m_info);
   close(s->socket);
+  memset(s, 0, sizeof(slave_info));
 }
 
-void send_response(int sock, int res_id){
+void send_response(int socket, resType res_id){
   RData_Response data;
   data.res_type = res_id;
   Request* request = req_encode(req_res, &data, "1234567");
-  req_send(sock, request);
+  req_send(socket, request);
   req_free(request);
-}
-//--------------------------------------------------------
-
-Request* req_handle(Request* request) {
-    switch (request->header.req_type) {
-        case req_cnt: {
-            RData_Connect* data = req_decode(request);
-            if (data->conn_type == conn_slave) {
-                print("A new slave node connected, adding to the list...", m_info);
-                print(data->name, m_info);
-                print(request->header.key, m_info);
-            }
-            else if (data->conn_type == conn_client) {
-                print("A new client connected.", m_info);
-            }
-            free(data);
-            break;
-        }
-        case req_snd: {
-            RData_File* data = req_decode(request);
-            char buff[256];
-            sprintf(buff, "%u, %lu", data->file_type, data->size);
-            print(buff, m_info);
-            print(data->data, m_info);
-            free(data);
-            break;
-        }
-        case req_rcv: {
-
-            break;
-        }
-        default:
-            break;
-    }
 }
