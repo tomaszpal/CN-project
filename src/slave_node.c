@@ -85,10 +85,10 @@ int main(int argc, char** argv) {
                 continue;
             }
             req_clear(&request);
-
+            int task_id = data.id;
             RData_File result;
             if (do_work(&result, data.file_type, data.data, data.size)) {
-                if (response_send(s_socket, res_fail, 0, slaveKey)) {
+                if (response_send(s_socket, res_fail, task_id, slaveKey)) {
                     print("Couldn't send response, connection lost.", m_warning);
                     break;
                 }
@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
             if (req_encode(&request, req_snd, &result, slaveKey)) {
                 fileData_clear(&result);
                 print("Couldn't encode result.", m_warning);
-                if (response_send(s_socket, res_fail, 0, slaveKey)) {
+                if (response_send(s_socket, res_fail, task_id, slaveKey)) {
                     print("Couldn't send response, connection lost.", m_warning);
                     break;
                 }

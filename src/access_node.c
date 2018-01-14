@@ -43,7 +43,9 @@ int main(int argc, char** argv) {
     char script[] = "print('FooBAR')\n";
     qwe.size = sizeof(script);
     qwe.data = script;
-    push(&tasks_queue, 0, 0, &qwe);
+    Request req;
+    req_encode(&req, req_snd, &qwe, serverKey);
+    push(&tasks_queue, 0, 0, &req);
 
     //setup server
     struct sockaddr_in s_addr;
