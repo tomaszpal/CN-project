@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <queue.h>
+#include "queue.h"
 
 void init_queue(Tasks_queue* queue){
     pthread_mutex_init(&(queue->mutex), NULL);

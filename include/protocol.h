@@ -66,4 +66,5 @@ typedef struct RData_File {
 typedef struct RData_Response {
     resType res_type;
 } RData_Response;
+
 #endif //_PROTOCOL_

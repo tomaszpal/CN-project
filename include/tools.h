@@ -3,6 +3,8 @@
 
 #include "protocol.h"
 
+/* Defines size of output buffors.                              */
+#define BUFF_SIZE 256
 /* Defines colors of output.                                    */
 #define COL_RED   "\x1B[31m"
 #define COL_ORG   "\x1B[38;5;202m"
