@@ -13,7 +13,7 @@
 //after sending result to access node they will be removed
 extern const char* work_dir;
 
-const char slaveKey[8] = "12345678";
+const char slaveKey[KEY_LENGTH + 1] = "12345678";
 
 int main(int argc, char** argv) {
     if (argv[1] == NULL) {
