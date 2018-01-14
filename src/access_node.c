@@ -11,15 +11,12 @@
 #include <unistd.h>
 #include "queue.h"
 
-#define MAX_SLAVES_NUMBER   5
-#define MAX_CLIENTS_NUMBER  100
-
 #define SERVER_PORT         1234
 #define QUEUE_SIZE          10
-#define BUFF_SIZE           256
 
 const char serverKey[KEY_LENGTH + 1] = "12345678";
 
+//queue with tasks to execute
 Tasks_queue tasks_queue;
 
 //tables with informations about connected slaves and users

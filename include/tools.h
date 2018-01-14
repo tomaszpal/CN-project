@@ -25,7 +25,7 @@ void print(const char* message, mType type);
 int req_send(int socket, const Request* request);
 
 /* Sends a response request to a given socket.                 */
-int response_send(int socket, resType res_id, const char key[8]);
+int response_send(int socket, resType res_id, int id, const char key[8]);
 
 /* Receives a request from a given socket.                     */
 int req_receive(int socket, Request* request);

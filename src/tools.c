@@ -45,9 +45,10 @@ int req_send(int socket, const Request* request) {
     return 0;
 }
 
-int response_send(int socket, resType res_id, const char key[8]) {
+int response_send(int socket, resType res_id, int id, const char key[8]) {
     RData_Response data;
     data.res_type = res_id;
+    data.id = id;
     Request request;
     if (req_encode(&request, req_res, &data, key)) {
         return 2;

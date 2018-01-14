@@ -29,7 +29,7 @@ void* handle_connection(void* arg) {
     RData_Connect data;
     if (req_decodeConnect(&request, &data)) {
         print("Couldn't decode the data.", m_warning);
-        if (response_send(socket, res_fail, serverKey)) {
+        if (response_send(socket, res_fail, 0, serverKey)) {
             print("Couldn't send response, connection lost.", m_warning);
         }
         req_clear(&request);
@@ -44,7 +44,7 @@ void* handle_connection(void* arg) {
             char buff[BUFF_SIZE];
             sprintf(buff, "New slave at socket: %d.", socket);
             print(buff, m_info);
-            if (response_send(socket, res_ok, serverKey)) {
+            if (response_send(socket, res_ok, 0, serverKey)) {
                 print("Couldn't send response, connection lost.", m_warning);
                 del_slave(s);
                 close(socket);
@@ -55,7 +55,7 @@ void* handle_connection(void* arg) {
         }
         else {
             print("Slaves list is full.", m_warning);
-            if (response_send(socket, res_full, serverKey)) {
+            if (response_send(socket, res_full, 0, serverKey)) {
                 print("Couldn't send response, connection lost.", m_warning);
                 close(socket);
                 return NULL;
@@ -73,7 +73,7 @@ void* handle_connection(void* arg) {
         }
         else {
             print("Clients list is full.", m_warning);
-            if (response_send(socket, res_full, serverKey)) {
+            if (response_send(socket, res_full, 0, serverKey)) {
                 print("Couldn't send response, connection lost.", m_warning);
                 close(socket);
                 return NULL;
@@ -82,7 +82,7 @@ void* handle_connection(void* arg) {
     }
     else {
         print("Invalid type of connection.", m_warning);
-        if (response_send(socket, res_fail, serverKey)) {
+        if (response_send(socket, res_fail, 0, serverKey)) {
             print("Couldn't send response, connection lost.", m_warning);
             close(socket);
             return NULL;
@@ -114,25 +114,54 @@ void client_support(int id) {
             sprintf(buff, "Send request from client(id: %d).", id);
             print(buff, m_info);
             //pushing new task into tasks_queue
-            if (push(&tasks_queue, c->tasks_counter++, id, &data)) {
-                //@TODO
+            int task_id = c->tasks_counter++;
+            if (push(&tasks_queue, task_id, id, &data)) {
+                sprintf(buff, "Queue is full, couldn't add client's(id: %d) task.", id);
+                print(buff, m_warning);
+                if (response_send(c->socket, res_full, task_id, serverKey)) {
+                    print("Couldn't send response, connection lost.", m_warning);
+                    break;
+                }
             }
-
+            sprintf(buff, "Request from client(id: %d) pushed into tasks queue.", id);
+            print(buff, m_info);
+            if (response_send(c->socket, res_ok, task_id, serverKey)) {
+                print("Couldn't send response, connection lost.", m_warning);
+                break;
+            }
             fileData_clear(&data);
         }
         else if (request.header.req_type == req_rcv) {
             if (!is_empty(&(c->tasks_done))) {
                 int client_id, task_id;
                 RData_File result;
-                pop(&(c->tasks_done), &client_id, &task_id, &result);
-                Request req_res;
-                req_encode(&req_res, req_snd, &result, serverKey);
-                free(result.data);
+                if (pop(&(c->tasks_done), &client_id, &task_id, &result) ) {
+                    sprintf(buff, "Client's(id: %d) task queue is empty.", id);
+                    print(buff, m_warning);
+                    if (response_send(c->socket, res_empty, 0, serverKey)) {
+                        print("Couldn't send response, connection lost.", m_warning);
+                        break;
+                    }
+                }
+                result.id = task_id;
+                if (req_encode(&request, req_snd, &result, serverKey)) {
+                    sprintf(buff, "Couldn't encode client's(id: %d) task(id: %d) results.", id, task_id);
+                    print(buff, m_warning);
+                    if (response_send(c->socket, res_fail, 0, serverKey)) {
+                        print("Couldn't send response, connection lost.", m_warning);
+                        break;
+                    }
+                }
+                fileData_clear(&result);
                 //send task to client
-                if (req_send(c->socket, &req_res)) {
+                if (req_send(c->socket, &request)) {
+                    req_clear(&request);
                     break;
                 }
-                req_clear(&req_res);
+                sprintf(buff, "Send client's(id: %d) task(id: %d) results.", id, task_id);
+                print(buff, m_info);
+                break;
+                req_clear(&request);
             }
         }
         else {
@@ -141,7 +170,7 @@ void client_support(int id) {
         }
     }
     sprintf(buff, "Connection with client(id: %d) lost.", id);
-    print(buff, m_info);
+    print(buff, m_warning);
 }
 
 void slave_support(int id) {

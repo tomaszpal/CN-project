@@ -16,7 +16,7 @@ int clean(CleanType type);
 int do_work(RData_File* result, fileType type, const char* data, unsigned long size);
 
 /* Handshake with a server to give info about being slave.      */
-int handshake(int s_socket);
+int handshake(int s_socket, const char key[KEY_LENGTH + 1]);
 
 /* Checks if slave has python2 and python3 interpreter
  * and creates work directory.                                  */

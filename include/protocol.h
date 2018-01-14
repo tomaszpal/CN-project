@@ -31,7 +31,8 @@ typedef enum resType {
     res_ok,
     res_fail,
     res_full,
-    res_unauth_dev
+    res_unauth_dev,
+    res_empty
     //add more
 } resType;
 
@@ -57,6 +58,7 @@ typedef struct RData_Connect {
 
 /* Defines file sending request data.                            */
 typedef struct RData_File {
+    int id;
     fileType file_type;
     unsigned long size;
     char* data;
@@ -65,6 +67,7 @@ typedef struct RData_File {
 /* Defines server response                                       */
 typedef struct RData_Response {
     resType res_type;
+    int id;
 } RData_Response;
 
 #endif //_PROTOCOL_
