@@ -4,7 +4,9 @@
 #include <tools.h>
 #include <unistd.h>
 
-void print(char* message, mType type) {
+#define BUFF_SIZE 256
+
+void print(const char* message, mType type) {
     if (message != NULL) {
         switch (type) {
             case m_error:
@@ -20,7 +22,7 @@ void print(char* message, mType type) {
     }
 }
 
-int req_send(int socket, Request* request) {
+int req_send(int socket, const Request* request) {
     int nbytes = 0;
     char* ptr = (char*) &(request->header);
     while (nbytes < sizeof(Header)) {
@@ -43,7 +45,23 @@ int req_send(int socket, Request* request) {
     return 0;
 }
 
+int response_send(int socket, resType res_id, const char key[8]) {
+    RData_Response data;
+    data.res_type = res_id;
+    Request request;
+    if (req_encode(&request, req_res, &data, key)) {
+        return 2;
+    }
+    if (req_send(socket, &request)) {
+        req_clear(&request);
+        return 1;
+    }
+    req_clear(&request);
+    return 0;
+}
+
 int req_receive(int socket, Request* request) {
+    memset(request, 0, sizeof(Request));
     int nbytes = 0;
     char* ptr = (char*) &(request->header);
     while (nbytes < sizeof(Header)) {
@@ -54,12 +72,16 @@ int req_receive(int socket, Request* request) {
         nbytes += nread;
     }
     request->data = malloc(request->header.size);
-
+    if (request->data == NULL) {
+        return 2;
+    }
+    
     nbytes = 0;
     ptr = (char *) request->data;
     while (nbytes < request->header.size) {
         int nread = read(socket, ptr + nbytes, request->header.size - nbytes);
         if (nread == 0) {
+            free(request->data);
             return 1;
         }
         nbytes += nread;
@@ -67,8 +89,8 @@ int req_receive(int socket, Request* request) {
     return 0;
 }
 
-Request* req_encode(reqType type, void* data, char key[8]) {
-    Request* request = req_create();
+int req_encode(Request* request, reqType type, const void* data, const char key[8]) {
+    memset(request, 0, sizeof(Request));
     request->header.req_type = type;
     strcpy(request->header.key, key);
     switch (type) {
@@ -76,6 +98,9 @@ Request* req_encode(reqType type, void* data, char key[8]) {
         case req_cnt: {
             request->header.size = sizeof(RData_Connect);
             request->data = malloc(request->header.size);
+            if (request->data == NULL) {
+                return 1;
+            }
             memcpy(request->data, data, request->header.size);
             break;
         }
@@ -83,52 +108,50 @@ Request* req_encode(reqType type, void* data, char key[8]) {
             RData_File* tmp = data;
             request->header.size = sizeof(RData_File) + tmp->size;
             request->data = malloc(request->header.size);
+            if (request->data == NULL) {
+                return 1;
+            }
             char* ptr = request->data;
             memcpy(ptr, data, sizeof(RData_File));
             memcpy(ptr + sizeof(RData_File), tmp->data, tmp->size);
             break;
         }
         default:
-            req_free(request);
-            return NULL;
+            return 1;
     }
-    return request;
+    return 0;
 }
 
-void* req_decode(Request* request) {
-    void* res = NULL;
-    switch (request->header.req_type) {
-        case req_res:
-        case req_cnt: {
-            RData_Connect* data = malloc(sizeof(RData_Connect));
-            memcpy(data, request->data, request->header.size);
-            res = data;
-            break;
-        }
-        case req_snd: {
-            RData_File* data = malloc(sizeof(RData_File));
-            memcpy(data, request->data, sizeof(RData_File));
-            data->data = malloc(data->size);
-            char* ptr = request->data;
-            memcpy(data->data, ptr + sizeof(RData_File), data->size);
-            res = data;
-            break;
-        }
-        default:
-            break;
-    }
-    return res;
+int req_decodeConnect(const Request* request, RData_Connect* data) {
+    memset(data, 0, sizeof(RData_Connect));
+    memcpy(data, request->data, request->header.size);
+    return 0;
 }
 
-Request* req_create() {
-    Request* request = malloc(sizeof(Request));
-    if (request) {
-        memset(request, 0, sizeof(Request));
+int req_decodeFile(const Request* request, RData_File* data) {
+    memset(data, 0, sizeof(RData_File));
+    memcpy(data, request->data, sizeof(RData_File));
+    data->data = malloc(data->size);
+    if (data->data == NULL) {
+        return 1;
     }
-    return request;
+    char* ptr = request->data;
+    memcpy(data->data, ptr + sizeof(RData_File), data->size);
+    return 0;
 }
 
-void req_free(Request* request) {
+int req_decodeResponse(const Request* request, RData_Response* data) {
+    memset(data, 0, sizeof(RData_Response));
+    memcpy(data, request->data, request->header.size);
+    return 0;
+}
+
+void req_clear(Request* request) {
     free(request->data);
-    free(request);
+    memset(request, 0, sizeof(Request));
+}
+
+void fileData_clear(RData_File* data) {
+    free(data->data);
+    memset(data, 0, sizeof(RData_File));
 }
