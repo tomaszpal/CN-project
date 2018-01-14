@@ -62,13 +62,13 @@ int do_work(RData_File* result, fileType type, const char* data, unsigned long s
 
     result->file_type = file_data_file;
     result->size = lseek(fd, 0, SEEK_END);
-    result->data = malloc(result->size);
+    result->data = malloc(result->size + 1);
     if (result->data == NULL) {
         return 1;
     }
     lseek(fd, 0, SEEK_SET);
-    read(fd, result->data, result->size - 1);
-    result->data[result->size - 1] = 0;
+    read(fd, result->data, result->size);
+    result->data[result->size] = 0;
     close(fd);
     return 0;
 }
