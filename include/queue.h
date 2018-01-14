@@ -21,8 +21,9 @@ typedef struct Tasks_queue{
 } Tasks_queue;
 
 void init_queue(Tasks_queue* req);
+int is_empty(Tasks_queue* queue);
 int is_full(Tasks_queue* queue);
-int push(Tasks_queue* queue, Task_info* req);
-int pop(Tasks_queue* queue, Task_info* t);
+int push(Tasks_queue* queue, int task_id, int client_id, RData_File* resource);
+int pop(Tasks_queue* queue, int* task_id, int* client_id, RData_File* resource);
 
 #endif //_QUEUE_

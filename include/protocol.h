@@ -1,6 +1,10 @@
 #ifndef _PROTOCOL_
 #define _PROTOCOL_
 
+#define KEY_LENGTH      8
+#define LOGIN_LENGTH    16
+#define PASSWD_LENGTH   16
+
 /* Defines request types.                                       */
 typedef enum reqType {
     req_cnt,
@@ -35,7 +39,7 @@ typedef enum resType {
 typedef struct Header {
     reqType req_type;
     unsigned long size;
-    char key[8];
+    char key[KEY_LENGTH + 1];
 } Header;
 
 /* Defines request.                                             */
@@ -47,8 +51,8 @@ typedef struct Request {
 /* Defines login request data.                                   */
 typedef struct RData_Connect {
     connType conn_type;
-    char name[16];
-    char password[16];
+    char login[LOGIN_LENGTH + 1];
+    char passwd[PASSWD_LENGTH + 1];
 } RData_Connect;
 
 /* Defines file sending request data.                            */

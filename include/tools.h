@@ -17,24 +17,33 @@ typedef enum mType{
 } mType;
 
 /* Prints different types of messages on output.               */
-void print(char* message, mType type);
+void print(const char* message, mType type);
 
 /* Sends a request to a given socket.                          */
-int req_send(int socket, Request* request);
+int req_send(int socket, const Request* request);
+
+/* Sends a response request to a given socket.                 */
+int response_send(int socket, resType res_id, const char key[8]);
 
 /* Receives a request from a given socket.                     */
 int req_receive(int socket, Request* request);
 
 /* Encodes a request data to a request.                        */
-Request* req_encode(reqType type, void* data, char key[8]);
+int req_encode(Request* request, reqType type, const void* data, const char key[KEY_LENGTH + 1]);
 
-/* Decodes a request data from a given request.                */
-void* req_decode(Request* request);
+/* Decodes a connect data from a given request.                */
+int req_decodeConnect(const Request* request, RData_Connect* data);
 
-/* Creates and initializes with zeroes a request.              */
-Request* req_create();
+/* Decodes a file data from a given request.                   */
+int req_decodeFile(const Request* request, RData_File* data);
 
-/* Frees a request data from a given request.                  */
-void req_free(Request* request);
+/* Decodes a response data from a given request.               */
+int req_decodeResponse(const Request* request, RData_Response* data);
+
+/* Clears a request data from a given request.                 */
+void req_clear(Request* request);
+
+/* Clears a file data from file sending request data.          */
+void fileData_clear(RData_File* data);
 
 #endif //_TOOLS_
