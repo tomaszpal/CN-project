@@ -1,5 +1,6 @@
 #include "an_connection_lists.h"
 #include <string.h>
+#include "tools.h"
 
 //tables with informations about connected slaves and users
 Slave_info slaves_list[MAX_SLAVES_NUMBER];
@@ -48,6 +49,11 @@ int add_slave(int socket){ //@TODO authorization
 
 void del_client(int id){
     Client_info* c = &clients_list[id];
+    int task, client;
+    Request request;
+    while (!pop(&c->tasks_done, &task, &client, &request)) {
+        req_clear(&request);
+    }
     memset(c, 0, sizeof(Client_info));
 }
 

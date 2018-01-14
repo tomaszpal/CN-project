@@ -25,6 +25,9 @@ void* handle_connection(void* arg) {
     }
     if (request.header.req_type != req_cnt) {
         print("Unauthorized device.", m_warning);
+        if (response_send(socket, res_unauth_dev, 0, serverKey)) {
+            print("Couldn't send response, connection lost.", m_warning);
+        }
         req_clear(&request);
         close(socket);
         return NULL;
@@ -68,9 +71,15 @@ void* handle_connection(void* arg) {
     else if (data.conn_type == conn_client) {
         int c = add_client(socket);
         char buff[BUFF_SIZE];
-        sprintf(buff, "New client at socket: %d.", socket);
-        print(buff, m_info);
         if (c >= 0) {
+            sprintf(buff, "New client at socket: %d.", socket);
+            print(buff, m_info);
+            if (response_send(socket, res_ok, 0, serverKey)) {
+                print("Couldn't send response, connection lost.", m_warning);
+                del_client(c);
+                close(socket);
+                return NULL;
+            }
             client_support(c);
             del_client(c);
         }
@@ -221,7 +230,6 @@ void slave_support(int id) {
             print(buff, m_info);
             RData_File temp;
             req_decodeFile(&request, &temp);
-            printf("%d %d %d %d %d %s",s->client_id, s->task_id, temp.id, temp.file_type, temp.size, temp.data);
             //pushing done task into tasks_done for appropriate client
             if (push(&(clients_list[s->client_id].tasks_done), s->task_id, s->client_id, &request)) {
                 sprintf(buff, "Couldn't push result to client's queue(id: %d).", s->client_id);

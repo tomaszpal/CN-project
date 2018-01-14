@@ -43,15 +43,6 @@ int main(int argc, char** argv) {
     pthread_mutex_init(&slaves_mutex, NULL);
     pthread_mutex_init(&clients_mutex, NULL);
 
-    RData_File qwe;
-    qwe.file_type = file_py3_script;
-    char script[] = "print('FooBAR')\n";
-    qwe.size = sizeof(script);
-    qwe.data = script;
-    Request req;
-    req_encode(&req, req_snd, &qwe, serverKey);
-    push(&tasks_queue, 123, 55, &req);
-
     //setup server
     struct sockaddr_in s_addr;
     memset(&s_addr, 0, sizeof(struct sockaddr_in));
