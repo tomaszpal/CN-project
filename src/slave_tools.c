@@ -73,11 +73,11 @@ int do_work(RData_File* result, fileType type, const char* data, unsigned long s
     return 0;
 }
 
-int handshake(int s_socket) {
+int handshake(int s_socket, const char key[KEY_LENGTH + 1]) {
     RData_Connect data;
     data.conn_type = conn_slave;
     Request request;
-    req_encode(&request, req_cnt, &data, "1234");
+    req_encode(&request, req_cnt, &data, key);
 
     if (req_send(s_socket, &request)) {
         print("Connection with the server lost.", m_error);

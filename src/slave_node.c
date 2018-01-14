@@ -8,7 +8,12 @@
 #include "tools.h"
 #include <unistd.h>
 
+
+//in this folder all temporary python files and results will be stored
+//after sending result to access node they will be removed
 extern const char* work_dir;
+
+const char slaveKey[8] = "12345678";
 
 int main(int argc, char** argv) {
     if (argv[1] == NULL) {
@@ -27,14 +32,15 @@ int main(int argc, char** argv) {
     const char* server_port = argv[2];
     work_dir = argv[3];
 
+    //check for python interpreters and create work directory
     setup();
-    //c - client, s - slave
+
     struct hostent* server_ent = gethostbyname(server_name);
     if (!server_ent) {
         print("Can't get the server's IP address.", m_error);
         return 1;
     }
-
+    //s - server
     struct sockaddr_in s_addr;
     memset(&s_addr, 0, sizeof(struct sockaddr));
     s_addr.sin_family = AF_INET;
@@ -53,7 +59,8 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    if (handshake(s_socket)) {
+    //tell access node that you are a slave node
+    if (handshake(s_socket, slaveKey)) {
         print("Handshake with server failed.", m_error);
         close(s_socket);
         return 1;
@@ -71,7 +78,7 @@ int main(int argc, char** argv) {
             if (req_decodeFile(&request, &data)) {
                 req_clear(&request);
                 print("Couldn't decode request.", m_warning);
-                if (response_send(s_socket, res_fail, "1234")) {
+                if (response_send(s_socket, res_fail, slaveKey)) {
                     print("Couldn't send response, connection lost.", m_warning);
                     break;
                 }
@@ -81,7 +88,7 @@ int main(int argc, char** argv) {
 
             RData_File result;
             if (do_work(&result, data.file_type, data.data, data.size)) {
-                if (response_send(s_socket, res_fail, "1234")) {
+                if (response_send(s_socket, res_fail, slaveKey)) {
                     print("Couldn't send response, connection lost.", m_warning);
                     break;
                 }
@@ -90,10 +97,10 @@ int main(int argc, char** argv) {
             clean(clean_soft);
             fileData_clear(&data);
 
-            if (req_encode(&request, req_snd, &result, "1234")) {
+            if (req_encode(&request, req_snd, &result, slaveKey)) {
                 fileData_clear(&result);
                 print("Couldn't encode result.", m_warning);
-                if (response_send(s_socket, res_fail, "1234")) {
+                if (response_send(s_socket, res_fail, slaveKey)) {
                     print("Couldn't send response, connection lost.", m_warning);
                     break;
                 }
