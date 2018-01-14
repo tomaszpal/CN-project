@@ -11,6 +11,9 @@ extern Slave_info slaves_list[MAX_CLIENTS_NUMBER];
 extern char serverKey[KEY_LENGTH + 1];
 extern Tasks_queue tasks_queue;
 
+/* Checks if slave is still connected.                         */
+int ping_slave(int socket);
+
 void* handle_connection(void* arg) {
     print("Handling a new connection.", m_info);
     int socket = *((int*) arg);
@@ -187,8 +190,16 @@ void slave_support(int id) {
     while (1) {
         Request request;
         int client_id, task_id;
+        int is_connected = ping_slave(s->socket);
         //poll and wait for tasks
-        while (!s->busy && pop(&tasks_queue, &task_id, &client_id, &request));
+        while (is_connected && !s->busy && pop(&tasks_queue, &task_id, &client_id, &request)) {
+            is_connected = ping_slave(s->socket);
+            sleep(POLL_TIME_PERIOD);
+        }
+
+        if (!is_connected) {
+            break;
+        }
         s->busy = 1;
         s->client_id = client_id;
         s->task_id = task_id;
@@ -208,6 +219,9 @@ void slave_support(int id) {
         if (request.header.req_type == req_snd || request.header.req_type == req_res) {
             sprintf(buff, "Send request from slave(id: %d).", id);
             print(buff, m_info);
+            RData_File temp;
+            req_decodeFile(&request, &temp);
+            printf("%d %d %d %d %d %s",s->client_id, s->task_id, temp.id, temp.file_type, temp.size, temp.data);
             //pushing done task into tasks_done for appropriate client
             if (push(&(clients_list[s->client_id].tasks_done), s->task_id, s->client_id, &request)) {
                 sprintf(buff, "Couldn't push result to client's queue(id: %d).", s->client_id);
@@ -221,6 +235,7 @@ void slave_support(int id) {
         }
     }
     sprintf(buff, "Connection with slave(id: %d) lost.", id);
+    print(buff, m_info);
     if (s->busy) {
         Request request;
         RData_Response data;
@@ -232,5 +247,19 @@ void slave_support(int id) {
             print(buff, m_warning);
         }
     }
-    print(buff, m_info);
+}
+
+int ping_slave(int socket) {
+    if (response_send(socket, res_ok, 0, serverKey)) {
+        return 0;
+    }
+    Request request;
+    if (req_receive(socket, &request)) {
+        return 0;
+    }
+    if (request.header.req_type != req_res) {
+        req_clear(&request);
+        return 0;
+    }
+    return 1;
 }
