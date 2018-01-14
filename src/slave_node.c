@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
             if (req_decodeFile(&request, &data)) {
                 req_clear(&request);
                 print("Couldn't decode request.", m_warning);
-                if (response_send(s_socket, res_fail, slaveKey)) {
+                if (response_send(s_socket, res_fail, 0, slaveKey)) {
                     print("Couldn't send response, connection lost.", m_warning);
                     break;
                 }
@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
 
             RData_File result;
             if (do_work(&result, data.file_type, data.data, data.size)) {
-                if (response_send(s_socket, res_fail, slaveKey)) {
+                if (response_send(s_socket, res_fail, 0, slaveKey)) {
                     print("Couldn't send response, connection lost.", m_warning);
                     break;
                 }
@@ -100,7 +100,7 @@ int main(int argc, char** argv) {
             if (req_encode(&request, req_snd, &result, slaveKey)) {
                 fileData_clear(&result);
                 print("Couldn't encode result.", m_warning);
-                if (response_send(s_socket, res_fail, slaveKey)) {
+                if (response_send(s_socket, res_fail, 0, slaveKey)) {
                     print("Couldn't send response, connection lost.", m_warning);
                     break;
                 }
