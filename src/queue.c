@@ -27,7 +27,7 @@ int is_full(Tasks_queue* queue) {
 //return 0 if success, 1 if is already full
 //parameters: queue - queue structure pointer
 //t - pointer to Task_info structure to be pushed into queue
-int push(Tasks_queue* queue, int task_id, int client_id, RData_File* resource) {
+int push(Tasks_queue* queue, int task_id, int client_id, Request* resource) {
     pthread_mutex_lock(&(queue->mutex));
     if (queue->counter != MAX_TASKS_NUMBER) {
         if (queue->last == MAX_TASKS_NUMBER - 1) {
@@ -36,10 +36,14 @@ int push(Tasks_queue* queue, int task_id, int client_id, RData_File* resource) {
         Task_info* new_task = &(queue->queue[++(queue->last)]);
         new_task->task_id = task_id;
         new_task->client_id = client_id;
-        new_task->resource.file_type = resource->file_type;
-        new_task->resource.size = resource->size;
-        new_task->resource.data = malloc(new_task->resource.size);
-        memcpy(new_task->resource.data, resource->data, new_task->resource.size);
+        memcpy(&(new_task->resource), resource, sizeof(Request));
+        new_task->resource.data = malloc(new_task->resource.header.size);
+        if (new_task->resource.data == NULL) {
+            queue->last--;
+            pthread_mutex_unlock(&(queue->mutex));
+            return 1;
+        }
+        memcpy(new_task->resource.data, resource->data, new_task->resource.header.size);
         queue->counter++;
         pthread_mutex_unlock(&(queue->mutex));
         return 0;
@@ -52,16 +56,20 @@ int push(Tasks_queue* queue, int task_id, int client_id, RData_File* resource) {
 //return 0 if success, 1 if is already empty
 //parameters: queue - queue structure pointer
 //t - pointer to Task_info structure to save popped value from queue
-int pop(Tasks_queue* queue, int* task_id, int* client_id, RData_File* resource) {
+int pop(Tasks_queue* queue, int* task_id, int* client_id, Request* resource) {
      pthread_mutex_lock(&(queue->mutex));
      if (queue->counter != 0) {
          Task_info* task = &(queue->queue[queue->first++]);
-         *task_id = task->task_id;
          *client_id = task->client_id;
-         resource->file_type = task->resource.file_type;
-         resource->size = task->resource.size;
-         resource->data = malloc(resource->size);
-         memcpy(resource->data, task->resource.data, resource->size);
+         *task_id = task->task_id;
+         memcpy(resource, &(task->resource), sizeof(Request));
+         resource->data = malloc(resource->header.size);
+         if (resource->data == NULL) {
+             queue->first--;
+             pthread_mutex_unlock(&(queue->mutex));
+             return 1;
+         }
+         memcpy(resource->data, task->resource.data, resource->header.size);
          free(task->resource.data);
          if (queue->first == MAX_TASKS_NUMBER) {
             queue->first = 0;

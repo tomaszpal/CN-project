@@ -73,7 +73,7 @@ int req_receive(int socket, Request* request) {
         nbytes += nread;
     }
     request->data = malloc(request->header.size);
-    if (request->data == NULL) {
+    if (request->header.size != 0 && request->data == NULL) {
         return 2;
     }
 
