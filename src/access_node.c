@@ -31,6 +31,11 @@ int main(int argc, char** argv) {
     print("Setting up the server.", m_info);
     //initializing tasks_queue
     init_queue(&tasks_queue);
+    //initializing clients queue
+    int i;
+    for (i = 0; i < MAX_CLIENTS_NUMBER; i++) {
+        init_queue(&clients_list[i].tasks_done);
+    }
     //initializing slaves_list and clients_list
     memset(&slaves_list, 0, MAX_SLAVES_NUMBER * sizeof(Slave_info));
     memset(&clients_list, 0, MAX_CLIENTS_NUMBER * sizeof(Client_info));
@@ -45,7 +50,7 @@ int main(int argc, char** argv) {
     qwe.data = script;
     Request req;
     req_encode(&req, req_snd, &qwe, serverKey);
-    push(&tasks_queue, 0, 0, &req);
+    push(&tasks_queue, 123, 55, &req);
 
     //setup server
     struct sockaddr_in s_addr;

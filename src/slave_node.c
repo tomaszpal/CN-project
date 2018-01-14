@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
             }
             clean(clean_soft);
             fileData_clear(&data);
-
+            result.id = task_id;
             if (req_encode(&request, req_snd, &result, slaveKey)) {
                 fileData_clear(&result);
                 print("Couldn't encode result.", m_warning);
@@ -111,10 +111,24 @@ int main(int argc, char** argv) {
             if (req_send(s_socket, &request)) {
                 print("Connection with the server lost.", m_error);
                 req_clear(&request);
-                return 1;
+                break;
             }
             req_clear(&request);
             print("Result send to server", m_info);
+        }
+        else if (request.header.req_type == req_res) {
+            RData_Response data;
+            req_decodeResponse(&request, &data);
+            if (data.res_type == res_ok) {
+                if (req_send(s_socket, &request)) {
+                    print("Connection with the server lost.", m_error);
+                    req_clear(&request);
+                    break;
+                }
+            }
+            else {
+                print("Unsupported response type.", m_warning);
+            }
         }
         else {
             print("Unsupported request type.", m_warning);
