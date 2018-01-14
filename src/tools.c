@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <tools.h>
+#include "tools.h"
 #include <unistd.h>
 
 #define BUFF_SIZE 256
@@ -75,7 +75,7 @@ int req_receive(int socket, Request* request) {
     if (request->data == NULL) {
         return 2;
     }
-    
+
     nbytes = 0;
     ptr = (char *) request->data;
     while (nbytes < request->header.size) {
@@ -105,7 +105,7 @@ int req_encode(Request* request, reqType type, const void* data, const char key[
             break;
         }
         case req_snd: {
-            RData_File* tmp = data;
+            const RData_File* tmp = data;
             request->header.size = sizeof(RData_File) + tmp->size;
             request->data = malloc(request->header.size);
             if (request->data == NULL) {

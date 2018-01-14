@@ -12,13 +12,13 @@ ODIR = $(BUILD)/obj
 
 LIBS = -lpthread
 
-_DEPS = protocol.h tools.h queue.h
+_DEPS = protocol.h tools.h queue.h slave_tools.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 _OBJA = access_node.o tools.o queue.o
 OBJA = $(patsubst %,$(ODIR)/%,$(_OBJA))
 
-_OBJS = slave_node.o tools.o
+_OBJS = slave_node.o tools.o slave_tools.o
 OBJS = $(patsubst %,$(ODIR)/%,$(_OBJS))
 
 default: access_node slave_node

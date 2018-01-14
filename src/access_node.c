@@ -1,13 +1,13 @@
 #include <netinet/in.h>
 #include <pthread.h>
-#include <protocol.h>
+#include "protocol.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <tools.h>
+#include "tools.h"
 #include <unistd.h>
-#include <queue.h>
+#include "queue.h"
 
 #define MAX_SLAVES_NUMBER   5
 #define MAX_CLIENTS_NUMBER  100
@@ -30,8 +30,6 @@ typedef struct Slave_info {
     int client_id;
     int task_id;
 } Slave_info;
-
-
 
 Tasks_queue tasks_queue;
 

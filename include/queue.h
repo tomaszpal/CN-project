@@ -1,7 +1,7 @@
 #ifndef _QUEUE_
 #define _QUEUE_
 
-#include <protocol.h>
+#include "protocol.h"
 #include <pthread.h>
 
 #define MAX_TASKS_NUMBER 10
