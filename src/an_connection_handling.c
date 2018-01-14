@@ -125,6 +125,10 @@ void client_support(int id) {
             }
             sprintf(buff, "Request from client(id: %d) pushed into tasks queue.", id);
             print(buff, m_info);
+            if (response_send(c->socket, res_ok, task_id, serverKey)) {
+                print("Couldn't send response, connection lost.", m_warning);
+                break;
+            }
             fileData_clear(&data);
         }
         else if (request.header.req_type == req_rcv) {
