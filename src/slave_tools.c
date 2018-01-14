@@ -8,8 +8,6 @@
 #include "tools.h"
 #include <unistd.h>
 
-#define BUFF_SIZE 256
-
 const char* work_dir;
 
 int clean(CleanType type) {
