@@ -101,7 +101,7 @@ public static class Protocol
 
             byte[] hkey = new byte[HEADER_KEY_LENGTH];
             Array.Copy(data, counter, hkey, 0, HEADER_KEY_LENGTH);
-            request.header.key = Convert.ToBase64String(hkey);
+            request.header.key = System.Text.Encoding.UTF8.GetString(hkey);
             counter += HEADER_KEY_LENGTH;
 
         if (header_only == true)
@@ -122,12 +122,12 @@ public static class Protocol
 
                 byte[] rname = new byte[NICKNAME_LENGTH];
                 Array.Copy(data, counter, rname, 0, NICKNAME_LENGTH);
-                dt.name = Convert.ToBase64String(rname);
+                dt.name = System.Text.Encoding.UTF8.GetString(rname);
                 counter += NICKNAME_LENGTH;
 
                 byte[] rpsswd = new byte[PASSWORD_LENGTH];
                 Array.Copy(data, counter, rpsswd, 0, PASSWORD_LENGTH);
-                dt.password = Convert.ToBase64String(rpsswd);
+                dt.password = System.Text.Encoding.UTF8.GetString(rpsswd);
                 counter += PASSWORD_LENGTH;
 
 
@@ -156,6 +156,7 @@ public static class Protocol
 
                 byte[] rdata = new byte[dt.size];
                 Array.Copy(data, counter, rdata, 0, (int)dt.size);
+                dt.data = System.Text.Encoding.UTF8.GetString(rdata);
                 counter += (int)dt.size;
 
                 request.data = Marshal.AllocHGlobal(Marshal.SizeOf(dt));
@@ -182,7 +183,7 @@ public static class Protocol
 
     }
 
-    static byte[] StringToByteArray(string str, int length)
+    public static byte[] StringToByteArray(string str, int length)
     {
         return Encoding.ASCII.GetBytes(str.PadRight(length, '\0'));
     }
@@ -234,14 +235,16 @@ public static class Protocol
             byte[] rid = BitConverter.GetBytes(data.id);
             byte[] rtype = BitConverter.GetBytes((int)data.file_type);
             byte[] rsize = BitConverter.GetBytes(data.size);
+            byte[] rdata = StringToByteArray(data.data, (int) data.size);
 
-            byte[] content = new byte[oft + rid.Length + rtype.Length + rsize.Length];
+            byte[] content = new byte[oft + rid.Length + rtype.Length + rsize.Length + rdata.Length];
             System.Buffer.BlockCopy(header, 0, content, 0, oft);
             System.Buffer.BlockCopy(rid, 0, content, oft, rid.Length);
             System.Buffer.BlockCopy(rtype, 0, content, oft + rid.Length, rtype.Length);
             System.Buffer.BlockCopy(rsize, 0, content, oft + rid.Length + rtype.Length, rsize.Length);
+            System.Buffer.BlockCopy(rdata, 0, content, oft + rid.Length + rtype.Length + rsize.Length, rdata.Length);
 
-            request.header.size = (ulong)(rid.Length + rtype.Length + rsize.Length);
+            request.header.size = (ulong)(rid.Length + rtype.Length + rsize.Length + rdata.Length);
             hsize = BitConverter.GetBytes(request.header.size);
             System.Buffer.BlockCopy(hsize, 0, content, htype.Length, hsize.Length);
 

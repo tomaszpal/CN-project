@@ -31,7 +31,6 @@ namespace DayTime
         private void InitializeComponent()
         {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
-            this.buttonDisconnect = new System.Windows.Forms.Button();
             this.textBoxPort = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.textBoxAddr = new System.Windows.Forms.TextBox();
@@ -60,7 +59,6 @@ namespace DayTime
             // 
             // groupBox1
             // 
-            this.groupBox1.Controls.Add(this.buttonDisconnect);
             this.groupBox1.Controls.Add(this.textBoxPort);
             this.groupBox1.Controls.Add(this.label2);
             this.groupBox1.Controls.Add(this.textBoxAddr);
@@ -72,16 +70,6 @@ namespace DayTime
             this.groupBox1.TabIndex = 0;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Server Info";
-            // 
-            // buttonDisconnect
-            // 
-            this.buttonDisconnect.Enabled = false;
-            this.buttonDisconnect.Location = new System.Drawing.Point(174, 79);
-            this.buttonDisconnect.Name = "buttonDisconnect";
-            this.buttonDisconnect.Size = new System.Drawing.Size(84, 27);
-            this.buttonDisconnect.TabIndex = 4;
-            this.buttonDisconnect.Text = "Disconnect";
-            this.buttonDisconnect.UseVisualStyleBackColor = true;
             // 
             // textBoxPort
             // 
@@ -112,7 +100,7 @@ namespace DayTime
             // 
             this.buttonConnect.Location = new System.Drawing.Point(6, 78);
             this.buttonConnect.Name = "buttonConnect";
-            this.buttonConnect.Size = new System.Drawing.Size(67, 28);
+            this.buttonConnect.Size = new System.Drawing.Size(81, 28);
             this.buttonConnect.TabIndex = 3;
             this.buttonConnect.Text = "Connect";
             this.buttonConnect.UseVisualStyleBackColor = true;
@@ -184,7 +172,6 @@ namespace DayTime
             this.textBoxFile.Name = "textBoxFile";
             this.textBoxFile.Size = new System.Drawing.Size(252, 20);
             this.textBoxFile.TabIndex = 3;
-            this.textBoxFile.Text = "C:\\Users\\Mua\\Desktop\\dcdf.py";
             // 
             // radioButtonP3
             // 
@@ -331,7 +318,6 @@ namespace DayTime
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.TextBox textBoxStatus;
-        private Button buttonDisconnect;
     }
 }
 

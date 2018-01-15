@@ -11,11 +11,6 @@ using System.IO;
 using System.Runtime.InteropServices;
 
 
-
-/* mmm
- * $Id: Form1.cs,v 1.1 2006/10/24 19:32:59 mkalewski Exp $
- */
-
 namespace DayTime
 {
     public partial class Form1 : Form
@@ -23,14 +18,11 @@ namespace DayTime
         private Form obj;
         delegate void setThreadedTextBoxCallback(String text);
         delegate void setThreadedStatusLabelCallback(String text);
-
         delegate void setThreadedButtonCallback(bool status);
         delegate void setThreadedSendButtonCallback(bool status);
         delegate void setThreadedReceiveButtonCallback(bool status);
-        delegate void setThreadedDisconnectButtonCallback(bool status);
-
         delegate void setThreadedTasksDoneCallback(string text);
-        delegate void setThreadedTasksProgressCallback(string text);
+        delegate void setThreadedTasksProgressCallback();
 
         Client client = new Client();
 
@@ -38,7 +30,6 @@ namespace DayTime
         {
             InitializeComponent();
             this.obj = this;
- 
         }
 
         /* --------SETTING OBJECTS---------------------*/
@@ -48,7 +39,6 @@ namespace DayTime
                 this.obj.Invoke(textBoxCallback, text);
             }
             else {
-                //text = text.Substring(0, text.Length - 2);
                 this.textBoxStatus.Text = text;
             }
         }
@@ -102,18 +92,6 @@ namespace DayTime
             }
         }
 
-        private void setThreadedDisconnectButton(bool status)
-        {
-            if (this.buttonDisconnect.InvokeRequired)
-            {
-                setThreadedButtonCallback buttonCallback = new setThreadedButtonCallback(setThreadedDisconnectButton);
-                this.obj.Invoke(buttonCallback, status);
-            }
-            else
-            {
-                this.buttonDisconnect.Enabled = status;
-            }
-        }
 
 
         //adds text line to text box TasksDone
@@ -133,21 +111,21 @@ namespace DayTime
             }
         }
 
-        //adds text line to text box TasksProgress
-        private void setThreadedTasksProgress(String text)
+        //refreshes TasksProgress
+        private void setThreadedTasksProgress()
         {
             if (this.statusStrip.InvokeRequired)
             {
                 setThreadedTasksProgressCallback statusTasksProgressCallback = new setThreadedTasksProgressCallback(setThreadedTasksProgress);
-                this.obj.Invoke(statusTasksProgressCallback, text);
+                this.obj.Invoke(statusTasksProgressCallback);
             }
             else
             {
-                if (tasksProgress.Text.Length == 0)
-                    tasksProgress.Text = text;
-                else
-                    tasksProgress.AppendText(Environment.NewLine + text);
-
+                tasksProgress.Text = "";
+                foreach(int i in client.tasksProgress)
+                {
+                    tasksProgress.AppendText(i.ToString() + Environment.NewLine);
+                }
             }
         }
 
@@ -156,7 +134,7 @@ namespace DayTime
         {
             setThreadedStatusLabel("Managing response");
             setThreadedButton(true);
-            
+
             if (response.header.req_type == Protocol.reqType.req_res)
             { //some error responses
                 Protocol.RData_Response ans_data = (Protocol.RData_Response)Marshal.PtrToStructure(response.data, typeof(Protocol.RData_Response));
@@ -168,9 +146,11 @@ namespace DayTime
                         setThreadedSendButton(true);
 
                     }
-                    else //zaakceptowano zadanie
+                    else //file accepted
                     {
-                        setThreadedTasksProgress(ans_data.id.ToString());
+                        
+                        client.tasksProgress.Add(ans_data.id);
+                        setThreadedTasksProgress();
                         setThreadedStatusLabel("File accepted");
                         setThreadedReceiveButton(true);
                     }
@@ -192,20 +172,17 @@ namespace DayTime
                 { //other srver response
                     setThreadedStatusLabel("Unsupported request type");
                 }
-
-                //socketFd.Shutdown(SocketShutdown.Both);
-                //socketFd.Close();
             }
             else if (response.header.req_type == Protocol.reqType.req_snd)
             { //there is a file
                 Protocol.RData_File ans_data = (Protocol.RData_File)Marshal.PtrToStructure(response.data, typeof(Protocol.RData_File));
                 taskDone(ref ans_data);
+
             }
             else
             { //other srver response
                 setThreadedStatusLabel("Unsupported request type");
             }
-            
         }
 
         private void ReceiveRestCallback(IAsyncResult ar)
@@ -216,11 +193,8 @@ namespace DayTime
                 SocketStateObject state = (SocketStateObject)ar.AsyncState;
                 Socket socketFd = state.m_SocketFd;
 
-
                 /* read data */
                 int readSize = socketFd.EndReceive(ar);
-
-                //state.m_StringBuilder.Append(Encoding.ASCII.GetString(state.m_DataBuf, 0, readSize));
                 state.m_Data = Protocol.combine(state.m_Data, state.m_DataBuf, readSize);
                 state.m_DataBuf = new byte[state.size - state.m_Data.Length + 21];
                 // receive the rest of header
@@ -231,22 +205,12 @@ namespace DayTime
                 else
                 {
                     Protocol.Request req = new Protocol.Request();
-                   // byte[] data = Encoding.ASCII.GetBytes(state.m_StringBuilder.ToString());
-                    
                     Protocol.req_decode(ref req, state.m_Data);
-
                     /* manage response */
                     feedback(ref req);
                     setThreadedSendButton(true);
                     setThreadedReceiveButton(true);
-                    setThreadedDisconnectButton(true);
-                    
-                    // this.client.receiveDone.Set();
-                    // this.client.receiveDone.WaitOne();
-                    //this.client.sendDone.Set();
                 }
-
-
             }
             catch (Exception exc)
             {
@@ -262,39 +226,29 @@ namespace DayTime
                 /* retrieve the SocketStateObject */
                 SocketStateObject state = (SocketStateObject)ar.AsyncState;
                 Socket socketFd = state.m_SocketFd;
-
                 
                 /* read data */
-               int readSize =  socketFd.EndReceive(ar);
-
+                int readSize = socketFd.EndReceive(ar);
                 state.m_Data = Protocol.combine(state.m_Data, state.m_DataBuf, readSize);
-                //state.m_StringBuilder.Append(Encoding.ASCII.GetString(state.m_DataBuf, 0, readSize));
-
                 state.m_DataBuf = new byte[state.size - state.m_Data.Length];
                 // receive the rest of header
-                if ( state.m_Data.Length < state.size)
+                if (state.m_Data.Length < state.size)
                 {
                     socketFd.BeginReceive(state.m_DataBuf, 0, state.size - state.m_Data.Length, 0, new AsyncCallback(ReceiveCallback), state);
                 }
                 else
                 {
                     Protocol.Request req = new Protocol.Request();
-                   // byte[] data = Encoding.ASCII.GetBytes(state.m_StringBuilder.ToString());
                     if (state.m_Data.Length != state.size)
                     {
                         throw new Exception("Wrong size of data");
                     }
                     Protocol.req_decode(ref req, state.m_Data, true);
-
                     state.size = (int)req.header.size;
-
-
                     state.m_DataBuf = new byte[state.size];
                     /*begin receiving the rest */
                     socketFd.BeginReceive(state.m_DataBuf, 0, state.size, 0, new AsyncCallback(ReceiveRestCallback), state);
                 }
-                
-
             }
             catch (Exception exc)
             {
@@ -315,7 +269,6 @@ namespace DayTime
                 int bytesSent = socketFd.EndSend(ar);
                 setThreadedTextBox("Sent " + bytesSent.ToString() + " bytes to server.");
                 state.size -= bytesSent;
-                //state.m_DataBuf = new byte[state.size];
 
                 if (state.size > 0)
                 {
@@ -323,17 +276,12 @@ namespace DayTime
                 }
                 else
                 {
-
                     state.size = 21;
                     state.m_DataBuf = new byte[state.size];
                     state.m_Data = new byte[0];
                     /* begin receiving the header */
                     socketFd.BeginReceive(state.m_DataBuf, 0, state.size, 0, new AsyncCallback(ReceiveCallback), state);
-                    //this.client.receiveDone.WaitOne();
-
                 }
-               
-
             }
             catch (Exception e) {
                 setThreadedStatusLabel(e.ToString());
@@ -347,38 +295,22 @@ namespace DayTime
             state.m_SocketFd = this.client.s_socket;
             state.m_DataBuf = Protocol.req_encode(ref req);
 
-            setThreadedTasksDone(state.m_DataBuf.Length.ToString());
-
-
             setThreadedStatusLabel("Wait! Sending information...");
             state.size = state.m_DataBuf.Length;
-            client.s_socket.BeginSend(state.m_DataBuf, 0, state.size, 0, new AsyncCallback(SendCallback),  state);
-            //this.client.sendDone.WaitOne();
-
-           
+            client.s_socket.BeginSend(state.m_DataBuf, 0, state.size, 0, new AsyncCallback(SendCallback), state);
         }
 
 
         private void ConnectCallback(IAsyncResult ar) {
             try {
                 /* retrieve the socket from the state object */
-                Socket socketFd = (Socket) ar.AsyncState;
+                Socket socketFd = (Socket)ar.AsyncState;
                 /* complete the connection */
                 socketFd.EndConnect(ar);
-
-                /* create the SocketStateObject */
-                // SocketStateObject state = new SocketStateObject();
-                //state.m_SocketFd = socketFd;
-
-                // setThreadedStatusLabel("Wait! Sending connection information...");
-                //socketFd.BeginSend(state.m_DataBuf, 0, SocketStateObject.BUF_SIZE, 0, new AsyncCallback(SendCallback), state);
-                //sendDone.WaitOne();
                 this.client.s_socket = socketFd;
                 setThreadedStatusLabel("Connection established");
                 setThreadedButton(false);
-                setThreadedDisconnectButton(true);
                 this.client.connectDone.Set();
-                
             }
             catch (Exception exc)
             {
@@ -404,43 +336,31 @@ namespace DayTime
 
                 /* remote endpoint for the socket */
                 endPoint = new IPEndPoint(addresses[0], Int32.Parse(this.textBoxPort.Text.ToString()));
-
                 setThreadedStatusLabel("Wait! Connecting...");
-
 
                 /* connect to the server */
                 socketFd.BeginConnect(endPoint, new AsyncCallback(ConnectCallback), socketFd);
                 this.client.connectDone.WaitOne();
 
                 /* send client information */
-                Protocol.Request req, ans_req;
+                Protocol.Request req;
                 req = new Protocol.Request();
+
                 //creating data
                 Protocol.RData_Connect data = new Protocol.RData_Connect();
                 data.conn_type = Protocol.connType.conn_client;
                 data.name = "name";
                 data.password = "psswd";
-                //data.name = Encoding.ASCII.GetBytes("name"); 
-                //data.password = Encoding.ASCII.GetBytes("name");
                 req.data = Marshal.AllocHGlobal(Marshal.SizeOf(data));
                 Marshal.StructureToPtr(data, req.data, false);
+
                 //creating header
                 req.header = new Protocol.Header();
                 req.header.req_type = Protocol.reqType.req_cnt;
-                //req.header.size = (ulong)Marshal.SizeOf(data.GetType());
                 req.header.key = "12345678\0";
-
-                ///-------------------------------------------------------------------------------------------------------------------
-               // Protocol.Request check_enc = new Protocol.Request();
-                //Protocol.req_decode(ref check_enc, Protocol.req_encode(ref req));
-                //setThreadedTasksDone(req.header.size.ToString());
-                //setThreadedTasksDone(check_enc.header.size.ToString());
-
-
 
                 sendRequest(ref req);
                 this.client.sendDone.WaitOne();
-
             }
             catch (Exception exc) {
                 MessageBox.Show("Exception:\t\n" + exc.Message.ToString());
@@ -453,38 +373,41 @@ namespace DayTime
 
         private void taskDone(ref Protocol.RData_File datafile)
         {
-            string filename = "";
-
-            if (!client.tasksProgress.TryGetValue(datafile.id, out filename)) {
+            if (!client.tasksProgress.Contains(datafile.id)) {
                 setThreadedStatusLabel("Incorrect received file id");
                 return;
             }
-            //delete from in progress
-            client.tasksProgress.Remove(datafile.id);
-            //add to done tasks
-            setThreadedTasksDone(datafile.id.ToString());
+            else
+            {
+                //delete from in progress
+                client.tasksProgress.Remove(datafile.id);
+                setThreadedTasksProgress();
+                
+                
+                string filename = datafile.id.ToString() + "_res.txt";
+                string path = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName + @"\results\" + filename;
+                setThreadedTasksDone(datafile.id.ToString() + ": " + path);
+                try
+                {
+                    if (File.Exists(path))
+                    {
+                        File.Delete(path);
+                    }
 
-
-            filename = Path.GetFileNameWithoutExtension(filename) + datafile.id.ToString() + "_res.txt";
-            string path = Directory.GetParent(Directory.GetCurrentDirectory()).Parent.FullName + @"results\" + filename;
-
-            
-
-            try {
-                if (File.Exists(path)) {
-                    File.Delete(path);
+                    // Create the file.
+                    using (FileStream fs = File.Create(path))
+                    {
+                        // Add text to the file.
+                        Byte[] info = Protocol.StringToByteArray(datafile.data, (int) datafile.size);
+                        fs.Write(info, 0, info.Length);
+                    }
                 }
-
-                // Create the file.
-                using (FileStream fs = File.Create(path)) {
-                    // Add text to the file.
-                    Byte[] info = new UTF8Encoding(true).GetBytes(datafile.data);
-                    fs.Write(info, 0, info.Length);
-                }  
+                catch (Exception exc)
+                {
+                    MessageBox.Show("Exception:\t\n" + exc.Message.ToString());
+                }
             }
-            catch (Exception exc) {
-                MessageBox.Show("Exception:\t\n" + exc.Message.ToString());
-            }
+            
         
         }
 
@@ -497,9 +420,8 @@ namespace DayTime
                 setThreadedStatusLabel("Wait! DNS query...");
 
                 if (this.textBoxAddr.Text.Length > 0 && this.textBoxPort.Text.Length > 0) {
-                    /* get DNS host information */ /* and connect */
+                    /* get DNS host information and connect */
                     Dns.BeginGetHostEntry(this.textBoxAddr.Text.ToString(), new AsyncCallback(GetHostEntryCallback), null);
-                  
                 }
                 else {
                     if (this.textBoxAddr.Text.Length <= 0) MessageBox.Show("No server address!");
@@ -521,7 +443,7 @@ namespace DayTime
         {
 
             OpenFileDialog fdlg = new OpenFileDialog();
-            fdlg.Title = "C# Corner Open File Dialog";
+            fdlg.Title = "Choose python file";
             fdlg.InitialDirectory = @"c:\";
             fdlg.Filter = "Python files |*.py";
             fdlg.FilterIndex = 2;
@@ -535,17 +457,14 @@ namespace DayTime
 
         /* Send button */
         private void buttonSend_Click(object sender, EventArgs e) {
-            
-            
             if ((radioButtonP2.Checked || radioButtonP3.Checked) && textBoxFile.Text.Length > 0) {
                 string filename = textBoxFile.Text;
                 try {
                     setThreadedSendButton(false);
                     setThreadedReceiveButton(false);
-                    setThreadedDisconnectButton(false);
                     using (StreamReader sr = new StreamReader(filename)) {
                         String line = sr.ReadToEnd();
-                        Protocol.Request req, ans_req;
+                        Protocol.Request req;
                         req = new Protocol.Request();
                         //creating data
                         Protocol.RData_File data_file = new Protocol.RData_File();
@@ -559,12 +478,7 @@ namespace DayTime
                         req.header.req_type = Protocol.reqType.req_snd;
                         req.header.size = (ulong)Marshal.SizeOf(data_file.GetType());
                         req.header.key = "12345678";
-                        
                         sendRequest(ref req);
-
-                    // byte[] dataBuf = Encoding.ASCII.GetBytes(data_file.ToString());
-                    /* begin sending the data */
-                    // m_socket.BeginSend(dataBuf, 0, dataBuf.Length, 0, new AsyncCallback(SendCallback), m_socket);
                     }
                 }
                 catch (Exception exc) {
@@ -581,8 +495,6 @@ namespace DayTime
             try {
                 setThreadedSendButton(false);
                 setThreadedReceiveButton(false);
-                setThreadedDisconnectButton(false);
-                Protocol.Request ans_req;
                 Protocol.Request req = new Protocol.Request();
                 //creating data 
                 req.data = new IntPtr();
@@ -593,18 +505,14 @@ namespace DayTime
                 req.header.key = "12345678";
 
                 sendRequest(ref req);
-                
             }
             catch (Exception exc)  {
                     setThreadedStatusLabel("Exception:\t\n" + exc.Message.ToString());
             }
-            
         }
-
     }
 
-
-
+    
     public class SocketStateObject
     {
         //size of receive buffer
@@ -615,8 +523,6 @@ namespace DayTime
         public byte[] m_Data;
         //number of bytes to receive
         public int size;
-        //received data string
-        public StringBuilder m_StringBuilder = new StringBuilder();
         //Client socket
         public Socket m_SocketFd = null;
     }
@@ -625,14 +531,11 @@ namespace DayTime
     {
         public const int MAX_TASKS_NUMBER = 5;
         public String[] balance = new String[MAX_TASKS_NUMBER];
+        public Socket s_socket;
+        public List<int> tasksProgress = new List<int>();
 
         public System.Threading.ManualResetEvent connectDone = new System.Threading.ManualResetEvent(false);
         public System.Threading.ManualResetEvent sendDone = new System.Threading.ManualResetEvent(false);
         public System.Threading.ManualResetEvent receiveDone = new System.Threading.ManualResetEvent(false);
-
-
-        public Socket s_socket;
-
-        public Dictionary<int, string> tasksProgress = new Dictionary<int, string>();
     }
 }
