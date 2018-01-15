@@ -10,6 +10,7 @@ Client_info clients_list[MAX_CLIENTS_NUMBER];
 pthread_mutex_t clients_mutex;
 pthread_mutex_t slaves_mutex;
 
+unsigned long client_counter;
 
 int add_client(int socket){ //@TODO authorization
     int i;
@@ -17,6 +18,7 @@ int add_client(int socket){ //@TODO authorization
         Client_info* c = &clients_list[i];
         pthread_mutex_lock(&clients_mutex);
         if (c->socket == 0) {
+            c->session_id = client_counter++;
             c->socket = socket;
             c->tasks_counter = 0;
             pthread_mutex_unlock(&clients_mutex);

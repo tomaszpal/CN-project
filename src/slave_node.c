@@ -78,7 +78,7 @@ int main(int argc, char** argv) {
             if (req_decodeFile(&request, &data)) {
                 req_clear(&request);
                 print("Couldn't decode request.", m_warning);
-                if (response_send(s_socket, res_fail, 0, slaveKey)) {
+                if (response_send(s_socket, res_fail, -1, slaveKey)) {
                     print("Couldn't send response, connection lost.", m_warning);
                     break;
                 }

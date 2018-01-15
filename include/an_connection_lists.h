@@ -8,6 +8,7 @@
 
 /* Defines the informations about client.                       */
 typedef struct Client_info {
+    int session_id;
     int socket;
     int tasks_counter;
     Tasks_queue tasks_done;

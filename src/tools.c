@@ -46,7 +46,7 @@ int req_send(int socket, const Request* request) {
     ptr = data;
     while (nbytes < size) {
         int nwrite = write(socket, ptr + nbytes, size - nbytes);
-        if (nwrite == 0) {
+        if (nwrite <= 0) {
             free(data);
             return 1;
         }
@@ -84,7 +84,8 @@ int req_receive(int socket, Request* request) {
     char* ptr = data;
     while (nbytes < header_size) {
         int nread = read(socket, ptr + nbytes, header_size - nbytes);
-        if (nread == 0) {
+        printf("%d read - header\n", nread);
+        if (nread <= 0) {
             return 1;
         }
         nbytes += nread;
@@ -96,7 +97,7 @@ int req_receive(int socket, Request* request) {
     memcpy(request->header.key, ptr, member_size(Header, key));
     ptr += member_size(Header, key);
     free(data);
-
+    printf("%d - size from header\n", request->header.size);
     request->data = malloc(request->header.size);
     if (request->header.size != 0 && request->data == NULL) {
         return 2;
@@ -107,7 +108,8 @@ int req_receive(int socket, Request* request) {
     ptr = (char *)request->data;
     while (nbytes < request->header.size) {
         int nread = read(socket, ptr + nbytes, request->header.size - nbytes);
-        if (nread == 0) {
+        printf("%d read - body\n", nread);
+        if (nread <= 0) {
             free(request->data);
             return 1;
         }
