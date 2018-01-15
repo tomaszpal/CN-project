@@ -210,7 +210,7 @@ void client_support(int id) {
             print(buff, m_info);
             req_clear(&request);
             int client_id, task_id;
-            if (pop(&(c->tasks_done), &task_id, &client_id, &request) ) {
+            if (pop(&(c->tasks_done), &task_id, &client_id, &request)) {
                 sprintf(buff, "Client's(id: %d) task queue is empty.", id);
                 print(buff, m_warning);
                 if (response_send(c->socket, res_empty, -1, serverKey)) {

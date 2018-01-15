@@ -21,6 +21,7 @@ int add_client(int socket){ //@TODO authorization
             c->session_id = client_counter++;
             c->socket = socket;
             c->tasks_counter = 0;
+            init_queue(&c->tasks_done);
             pthread_mutex_unlock(&clients_mutex);
             return i;
         }

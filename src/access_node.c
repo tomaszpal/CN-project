@@ -31,14 +31,15 @@ int main(int argc, char** argv) {
     print("Setting up the server.", m_info);
     //initializing tasks_queue
     init_queue(&tasks_queue);
+    //initializing slaves_list and clients_list
+    memset(&slaves_list, 0, MAX_SLAVES_NUMBER * sizeof(Slave_info));
+    memset(&clients_list, 0, MAX_CLIENTS_NUMBER * sizeof(Client_info));
     //initializing clients queue
     int i;
     for (i = 0; i < MAX_CLIENTS_NUMBER; i++) {
         init_queue(&clients_list[i].tasks_done);
     }
-    //initializing slaves_list and clients_list
-    memset(&slaves_list, 0, MAX_SLAVES_NUMBER * sizeof(Slave_info));
-    memset(&clients_list, 0, MAX_CLIENTS_NUMBER * sizeof(Client_info));
+
     //initializing mutexes for accessing clients and slaves list
     pthread_mutex_init(&slaves_mutex, NULL);
     pthread_mutex_init(&clients_mutex, NULL);
