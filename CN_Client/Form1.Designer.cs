@@ -1,3 +1,5 @@
+using System.Windows.Forms;
+
 namespace DayTime
 {
     partial class Form1
@@ -29,6 +31,7 @@ namespace DayTime
         private void InitializeComponent()
         {
             this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.buttonDisconnect = new System.Windows.Forms.Button();
             this.textBoxPort = new System.Windows.Forms.TextBox();
             this.label2 = new System.Windows.Forms.Label();
             this.textBoxAddr = new System.Windows.Forms.TextBox();
@@ -57,6 +60,7 @@ namespace DayTime
             // 
             // groupBox1
             // 
+            this.groupBox1.Controls.Add(this.buttonDisconnect);
             this.groupBox1.Controls.Add(this.textBoxPort);
             this.groupBox1.Controls.Add(this.label2);
             this.groupBox1.Controls.Add(this.textBoxAddr);
@@ -69,11 +73,21 @@ namespace DayTime
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Server Info";
             // 
+            // buttonDisconnect
+            // 
+            this.buttonDisconnect.Enabled = false;
+            this.buttonDisconnect.Location = new System.Drawing.Point(174, 79);
+            this.buttonDisconnect.Name = "buttonDisconnect";
+            this.buttonDisconnect.Size = new System.Drawing.Size(84, 27);
+            this.buttonDisconnect.TabIndex = 4;
+            this.buttonDisconnect.Text = "Disconnect";
+            this.buttonDisconnect.UseVisualStyleBackColor = true;
+            // 
             // textBoxPort
             // 
             this.textBoxPort.Location = new System.Drawing.Point(122, 50);
             this.textBoxPort.Name = "textBoxPort";
-            this.textBoxPort.Size = new System.Drawing.Size(100, 20);
+            this.textBoxPort.Size = new System.Drawing.Size(136, 20);
             this.textBoxPort.TabIndex = 2;
             this.textBoxPort.Text = "1234";
             // 
@@ -90,7 +104,7 @@ namespace DayTime
             // 
             this.textBoxAddr.Location = new System.Drawing.Point(122, 19);
             this.textBoxAddr.Name = "textBoxAddr";
-            this.textBoxAddr.Size = new System.Drawing.Size(100, 20);
+            this.textBoxAddr.Size = new System.Drawing.Size(138, 20);
             this.textBoxAddr.TabIndex = 1;
             this.textBoxAddr.Text = "192.168.0.190";
             // 
@@ -102,6 +116,7 @@ namespace DayTime
             this.buttonConnect.TabIndex = 3;
             this.buttonConnect.Text = "Connect";
             this.buttonConnect.UseVisualStyleBackColor = true;
+            this.buttonConnect.Click += new System.EventHandler(this.buttonConnect_Click);
             // 
             // label1
             // 
@@ -136,6 +151,7 @@ namespace DayTime
             this.buttonBrowse.TabIndex = 1;
             this.buttonBrowse.Text = "Browse";
             this.buttonBrowse.UseVisualStyleBackColor = true;
+            this.buttonBrowse.Click += new System.EventHandler(this.buttonBrowse_Click);
             // 
             // groupBox3
             // 
@@ -153,12 +169,14 @@ namespace DayTime
             // 
             // buttonSend
             // 
+            this.buttonSend.Enabled = false;
             this.buttonSend.Location = new System.Drawing.Point(6, 80);
             this.buttonSend.Name = "buttonSend";
             this.buttonSend.Size = new System.Drawing.Size(67, 28);
             this.buttonSend.TabIndex = 4;
             this.buttonSend.Text = "Send";
             this.buttonSend.UseVisualStyleBackColor = true;
+            this.buttonSend.Click += new System.EventHandler(this.buttonSend_Click);
             // 
             // textBoxFile
             // 
@@ -166,6 +184,7 @@ namespace DayTime
             this.textBoxFile.Name = "textBoxFile";
             this.textBoxFile.Size = new System.Drawing.Size(252, 20);
             this.textBoxFile.TabIndex = 3;
+            this.textBoxFile.Text = "C:\\Users\\Mua\\Desktop\\dcdf.py";
             // 
             // radioButtonP3
             // 
@@ -223,20 +242,25 @@ namespace DayTime
             // 
             // buttonReceive
             // 
+            this.buttonReceive.Enabled = false;
             this.buttonReceive.Location = new System.Drawing.Point(6, 125);
             this.buttonReceive.Name = "buttonReceive";
             this.buttonReceive.Size = new System.Drawing.Size(97, 24);
             this.buttonReceive.TabIndex = 2;
             this.buttonReceive.Text = "Receive";
             this.buttonReceive.UseVisualStyleBackColor = true;
+            this.buttonReceive.Click += new System.EventHandler(this.buttonReceive_Click);
             // 
             // tasksDone
             // 
             this.tasksDone.Location = new System.Drawing.Point(6, 152);
             this.tasksDone.MaximumSize = new System.Drawing.Size(269, 90);
             this.tasksDone.MinimumSize = new System.Drawing.Size(269, 90);
+            this.tasksDone.Multiline = true;
             this.tasksDone.Name = "tasksDone";
-            this.tasksDone.Size = new System.Drawing.Size(269, 20);
+            this.tasksDone.ReadOnly = true;
+            this.tasksDone.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.tasksDone.Size = new System.Drawing.Size(269, 90);
             this.tasksDone.TabIndex = 1;
             // 
             // tasksProgress
@@ -244,8 +268,11 @@ namespace DayTime
             this.tasksProgress.Location = new System.Drawing.Point(6, 23);
             this.tasksProgress.MaximumSize = new System.Drawing.Size(269, 90);
             this.tasksProgress.MinimumSize = new System.Drawing.Size(269, 90);
+            this.tasksProgress.Multiline = true;
             this.tasksProgress.Name = "tasksProgress";
-            this.tasksProgress.Size = new System.Drawing.Size(269, 20);
+            this.tasksProgress.ReadOnly = true;
+            this.tasksProgress.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
+            this.tasksProgress.Size = new System.Drawing.Size(269, 90);
             this.tasksProgress.TabIndex = 0;
             // 
             // textBoxStatus
@@ -304,6 +331,7 @@ namespace DayTime
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label label3;
         private System.Windows.Forms.TextBox textBoxStatus;
+        private Button buttonDisconnect;
     }
 }
 
